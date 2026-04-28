@@ -1,0 +1,77 @@
+name: Preprocessing Pipeline - Telco Customer Churn
+
+on:
+  push:
+    branches:
+      - main
+      - master
+      - develop
+  pull_request:
+    branches:
+      - main
+      - master
+
+jobs:
+  preprocessing:
+    name: Run Automated Preprocessing
+    runs-on: ubuntu-latest
+
+    steps:
+      # ── 1. Checkout repositori ───────────────────────────────────────────────
+      - name: ☁️ Checkout Repository
+        uses: actions/checkout@v4
+
+      # ── 2. Setup Python ──────────────────────────────────────────────────────
+      - name: 🐍 Set Up Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+          cache: "pip"
+
+      # ── 3. Install dependensi ────────────────────────────────────────────────
+      - name: 📦 Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # ── 4. Jalankan preprocessing pipeline ──────────────────────────────────
+      - name: ⚙️ Run Preprocessing Pipeline
+        run: |
+          cd preprocessing
+          python automate_Aqil-Afif.py
+
+      # ── 5. Verifikasi output ─────────────────────────────────────────────────
+      - name: ✅ Verify Output Files
+        run: |
+          echo "=== Memeriksa output direktori ==="
+          ls -lh preprocessing/telco_preprocessing/
+          echo ""
+          echo "=== Preview preprocessing/telco_preprocessing/train.csv ==="
+          head -5 preprocessing/telco_preprocessing/train.csv
+          echo ""
+          echo "=== Preview preprocessing/telco_preprocessing/test.csv ==="
+          head -5 preprocessing/telco_preprocessing/test.csv
+          echo ""
+          echo "=== Log Preprocessing ==="
+          cat logs/preprocessing.log
+
+      # ── 6. Upload artefak hasil preprocessing ────────────────────────────────
+      - name: 📤 Upload Processed Data Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: processed-dataset-${{ github.run_number }}
+          path: |
+            preprocessing/telco_preprocessing/train.csv
+            preprocessing/telco_preprocessing/test.csv
+            telco_raw/Telco-Customer-Churn.csv
+            logs/preprocessing.log
+          retention-days: 30
+
+      # ── 7. Upload log preprocessing ──────────────────────────────────────────
+      - name: 📋 Upload Preprocessing Log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: preprocessing-log-${{ github.run_number }}
+          path: logs/preprocessing.log
+          retention-days: 14
